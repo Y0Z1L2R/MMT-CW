@@ -1,0 +1,277 @@
+====================== SETUP ======================
+% Load and preprocess data
+data = tdfread('Data Extract.txt'); 
+time_10ms = 10e-3; % 10ms in seconds
+idx_10ms = find(data.time <= time_10ms); % Indices for ≤10ms
+
+% Check if 10ms data exists
+if isempty(idx_10ms)
+    error('No data points ≤10ms found! Check your simulation data.');
+else
+    data.time_10ms = data.time(idx_10ms);
+    data.Pres_10ms = data.Pres(idx_10ms);
+    data.Pcap_10ms = data.Pcap(idx_10ms);
+end
+
+% Define intervals and initialize storage
+intervals = [10, 100, 1000, 10000];
+num_runs = 5; % Number of runs for averaging time
+
+% Initialize storage for errors and times
+results_10ms = struct();
+results_60ms = struct();
+
+
+ ====================== 60ms ANALYSIS ======================
+for i = 1:length(intervals)
+    N = intervals(i) + 1; % Points = intervals + 1
+    
+    % Interpolate data
+    data.timei = linspace(min(data.time), max(data.time), N);
+    data.Presi = interp1(data.time, data.Pres, data.timei);
+    data.Pcapi = interp1(data.time, data.Pcap, data.timei);
+    
+    % ---- Resistor Energy ----
+    % Trapezoidal Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time) - min(data.time)) / (N-1);
+        E_resi_Trap = 0.5 * dx * (data.Presi(1) + data.Presi(end) + 2*sum(data.Presi(2:end-1)));
+    end
+    time_Trap_Res = toc / num_runs;
+    
+    % Simpson's Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time) - min(data.time)) / (N-1);
+        odd_terms = sum(data.Presi(2:2:end-1));
+        even_terms = sum(data.Presi(3:2:end-1));
+        E_resi_Simp = (dx/3) * (data.Presi(1) + data.Presi(end) + 4*odd_terms + 2*even_terms);
+    end
+    time_Simp_Res = toc / num_runs;
+    
+    % ---- Capacitor Energy ----
+    % Trapezoidal Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time) - min(data.time)) / (N-1);
+        E_capi_Trap = 0.5 * dx * (data.Pcapi(1) + data.Pcapi(end) + 2*sum(data.Pcapi(2:end-1)));
+    end
+    time_Trap_Cap = toc / num_runs;
+    
+    % Simpson's Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time) - min(data.time)) / (N-1);
+        odd_terms = sum(data.Pcapi(2:2:end-1));
+        even_terms = sum(data.Pcapi(3:2:end-1));
+        E_capi_Simp = (dx/3) * (data.Pcapi(1) + data.Pcapi(end) + 4*odd_terms + 2*even_terms);
+    end
+    time_Simp_Cap = toc / num_runs;
+    
+    % Store 60ms results
+    results_60ms(i).Intervals = intervals(i);
+    results_60ms(i).E_resi_Simp = E_resi_Simp;
+    results_60ms(i).E_resi_Trap = E_resi_Trap;
+    results_60ms(i).E_capi_Simp = E_capi_Simp;
+    results_60ms(i).E_capi_Trap = E_capi_Trap;
+    results_60ms(i).Time_Simp_Res = time_Simp_Res;
+    results_60ms(i).Time_Trap_Res = time_Trap_Res;
+    results_60ms(i).Time_Simp_Cap = time_Simp_Cap;
+    results_60ms(i).Time_Trap_Cap = time_Trap_Cap;
+    
+end
+
+
+ ====================== 10ms ANALYSIS ======================
+for i = 1:length(intervals)
+    N = intervals(i) + 1;
+    
+    % Interpolate data (10ms)
+    data.timei_10ms = linspace(min(data.time_10ms), max(data.time_10ms), N);
+    data.Presi_10ms = interp1(data.time_10ms, data.Pres_10ms, data.timei_10ms);
+    data.Pcapi_10ms = interp1(data.time_10ms, data.Pcap_10ms, data.timei_10ms);
+    
+    % ---- Resistor Energy ----
+    % Trapezoidal Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time_10ms) - min(data.time_10ms)) / (N-1);
+        E_resi_Trap_10ms = 0.5 * dx * (data.Presi_10ms(1) + data.Presi_10ms(end) + 2*sum(data.Presi_10ms(2:end-1)));
+    end
+    time_Trap_Res_10ms = toc / num_runs;
+    
+    % Simpson's Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time_10ms) - min(data.time_10ms)) / (N-1);
+        odd_terms = sum(data.Presi_10ms(2:2:end-1));
+        even_terms = sum(data.Presi_10ms(3:2:end-1));
+        E_resi_Simp_10ms = (dx/3) * (data.Presi_10ms(1) + data.Presi_10ms(end) + 4*odd_terms + 2*even_terms);
+    end
+    time_Simp_Res_10ms = toc / num_runs;
+    
+    % ---- Capacitor Energy ----
+    % Trapezoidal Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time_10ms) - min(data.time_10ms)) / (N-1);
+        E_capi_Trap_10ms = 0.5 * dx * (data.Pcapi_10ms(1) + data.Pcapi_10ms(end) + 2*sum(data.Pcapi_10ms(2:end-1)));
+    end
+    time_Trap_Cap_10ms = toc / num_runs;
+    
+    % Simpson's Rule
+    tic;
+    for run = 1:num_runs
+        dx = (max(data.time_10ms) - min(data.time_10ms)) / (N-1);
+        odd_terms = sum(data.Pcapi_10ms(2:2:end-1));
+        even_terms = sum(data.Pcapi_10ms(3:2:end-1));
+        E_capi_Simp_10ms = (dx/3) * (data.Pcapi_10ms(1) + data.Pcapi_10ms(end) + 4*odd_terms + 2*even_terms);
+    end
+    time_Simp_Cap_10ms = toc / num_runs;
+    
+    % Store 10ms results
+    results_10ms(i).Intervals = intervals(i);
+    results_10ms(i).E_resi_Simp = E_resi_Simp_10ms;
+    results_10ms(i).E_resi_Trap = E_resi_Trap_10ms;
+    results_10ms(i).E_capi_Simp = E_capi_Simp_10ms;
+    results_10ms(i).E_capi_Trap = E_capi_Trap_10ms;
+    results_10ms(i).Time_Simp_Res = time_Simp_Res_10ms;
+    results_10ms(i).Time_Trap_Res = time_Trap_Res_10ms;
+    results_10ms(i).Time_Simp_Cap = time_Simp_Cap_10ms;
+    results_10ms(i).Time_Trap_Cap = time_Trap_Cap_10ms;
+    
+end
+
+
+====================== THEORETICAL REFERENCE VALUES ======================
+% Given parameters
+R = 70;          % Resistance (Ohms)
+C = 10e-6;       % Capacitance (Farads)
+Von = 8e3;       % Voltage (Volts)
+
+% Theoretical energy functions
+E_R_theory = @(t) 0.5 * C * Von^2 * (1 - exp(-2 * t / (R * C)));
+E_C_theory = @(t) 0.5 * C * Von^2 * (1 - exp(-t / (R * C))).^2;
+
+% Reference values at 10ms and 60ms
+E_ref_resi_60ms = E_R_theory(60e-3);  % Theoretical resistor energy at 60ms
+E_ref_resi_10ms = E_R_theory(10e-3);  % Theoretical resistor energy at 10ms
+E_ref_capi_60ms = E_C_theory(60e-3);  % Theoretical capacitor energy at 60ms
+E_ref_capi_10ms = E_C_theory(10e-3);  % Theoretical capacitor energy at 10ms
+
+
+====================== ERROR CALCULATION ======================
+for i = 1:length(intervals)
+    % --- Resistor Errors ---
+    % 60ms errors (compared to theory)
+    results_60ms(i).Error_Simp_Res = abs((results_60ms(i).E_resi_Simp - E_ref_resi_60ms) / E_ref_resi_60ms) * 100;
+    results_60ms(i).Error_Trap_Res = abs((results_60ms(i).E_resi_Trap - E_ref_resi_60ms) / E_ref_resi_60ms) * 100;   
+    
+    % 10ms errors (compared to theory)
+    results_10ms(i).Error_Simp_Res = abs((results_10ms(i).E_resi_Simp - E_ref_resi_10ms) / E_ref_resi_10ms) * 100;
+    results_10ms(i).Error_Trap_Res = abs((results_10ms(i).E_resi_Trap - E_ref_resi_10ms) / E_ref_resi_10ms) * 100;   
+    
+    % --- Capacitor Errors ---
+    % 60ms errors (compared to theory)
+     results_60ms(i).Error_Simp_Cap = abs((results_60ms(i).E_capi_Simp - E_ref_capi_60ms) / E_ref_capi_60ms) * 100;
+     results_60ms(i).Error_Trap_Cap = abs((results_60ms(i).E_capi_Trap - E_ref_capi_60ms) / E_ref_capi_60ms) * 100;
+    
+    % 10ms errors (compared to theory)
+    results_10ms(i).Error_Simp_Cap = abs((results_10ms(i).E_capi_Simp - E_ref_capi_10ms) / E_ref_capi_10ms) * 100;
+    results_10ms(i).Error_Trap_Cap = abs((results_10ms(i).E_capi_Trap - E_ref_capi_10ms) / E_ref_capi_10ms) * 100;
+end
+
+
+====================== TABLES & PLOTS ======================
+% Convert results to tables
+T_60ms = struct2table(results_60ms);
+T_10ms = struct2table(results_10ms);
+
+% Display tables with all error types
+disp('60ms Results:');
+disp(T_60ms(:,{'Intervals','Error_Trap_Res','Error_Simp_Res','Error_Trap_Cap','Error_Simp_Cap'}));
+disp('10ms Results:');
+disp(T_10ms(:,{'Intervals','Error_Trap_Res','Error_Simp_Res','Error_Trap_Cap','Error_Simp_Cap'}));
+
+% Plot Error vs. Intervals (Log-Log Scale)
+figure;
+
+% Resistor Errors
+subplot(2,2,1);
+loglog([T_60ms.Intervals], [T_60ms.Error_Trap_Res], 'b-o', ...
+       [T_60ms.Intervals], [T_60ms.Error_Simp_Res], 'r-*');
+title('60ms: Resistor Error vs. Intervals');
+xlabel('Intervals');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+subplot(2,2,2);
+loglog([T_10ms.Intervals], [T_10ms.Error_Trap_Res], 'b-o', ...
+       [T_10ms.Intervals], [T_10ms.Error_Simp_Res], 'r-*');
+title('10ms: Resistor Error vs. Intervals');
+xlabel('Intervals');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+% Capacitor Errors
+subplot(2,2,3);
+loglog([T_60ms.Intervals], [T_60ms.Error_Trap_Cap], 'b-o', ...
+       [T_60ms.Intervals], [T_60ms.Error_Simp_Cap], 'r-*');
+title('60ms: Capacitor Error vs. Intervals');
+xlabel('Intervals');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+subplot(2,2,4);
+loglog([T_10ms.Intervals], [T_10ms.Error_Trap_Cap], 'b-o', ...
+       [T_10ms.Intervals], [T_10ms.Error_Simp_Cap], 'r-*');
+title('10ms: Capacitor Error vs. Intervals');
+xlabel('Intervals');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+% Plot Error vs. Time
+figure;
+
+% Resistor Errors
+subplot(2,2,1);
+semilogy([T_60ms.Time_Trap_Res], [T_60ms.Error_Trap_Res], 'b-o', ...
+         [T_60ms.Time_Simp_Res], [T_60ms.Error_Simp_Res], 'r-*');
+title('60ms: Resistor Error vs. Time');
+xlabel('Time (s)');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+subplot(2,2,2);
+semilogy([T_10ms.Time_Trap_Res], [T_10ms.Error_Trap_Res], 'b-o', ...
+         [T_10ms.Time_Simp_Res], [T_10ms.Error_Simp_Res], 'r-*');
+title('10ms: Resistor Error vs. Time');
+xlabel('Time (s)');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+% Capacitor Errors
+subplot(2,2,3);
+semilogy([T_60ms.Time_Trap_Cap], [T_60ms.Error_Trap_Cap], 'b-o', ...
+         [T_60ms.Time_Simp_Cap], [T_60ms.Error_Simp_Cap], 'r-*');
+title('60ms: Capacitor Error vs. Time');
+xlabel('Time (s)');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
+
+subplot(2,2,4);
+semilogy([T_10ms.Time_Trap_Cap], [T_10ms.Error_Trap_Cap], 'b-o', ...
+         [T_10ms.Time_Simp_Cap], [T_10ms.Error_Simp_Cap], 'r-*');
+title('10ms: Capacitor Error vs. Time');
+xlabel('Time (s)');
+ylabel('Error (%)');
+legend('Trapezoidal', 'Simpson''s', 'Location', 'southwest');
+grid on;
